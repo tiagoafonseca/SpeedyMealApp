@@ -1,6 +1,7 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
 import {
+  Image,
   Pressable,
   StatusBar,
   StyleSheet,
@@ -24,16 +25,14 @@ export default function OnboardingScreen({ navigation }: Props) {
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Illustration */}
+      {/* Logo */}
       <View style={styles.illuContainer}>
-        <View style={styles.illuBg}>
-          {/* Decorative food shapes */}
-          <View style={[styles.foodShape, { width: 90, height: 60, backgroundColor: '#D4E8C2', borderRadius: 30, top: 60, left: 30 }]} />
-          <View style={[styles.foodShape, { width: 70, height: 55, backgroundColor: '#F5D5B8', borderRadius: 28, top: 55, left: 110 }]} />
-          <View style={[styles.foodShape, { width: 50, height: 40, backgroundColor: '#F0C8C8', borderRadius: 20, top: 45, left: 80 }]} />
-          <View style={[styles.foodShape, { width: 34, height: 34, backgroundColor: Colors.accent, borderRadius: 17, top: 40, left: 158 }]} />
-          {/* Bowl */}
-          <View style={styles.bowl} />
+        <View style={styles.logoWrap}>
+          <Image
+            source={require('../../assets/wand-icon.png')}
+            style={styles.logo}
+            resizeMode="cover"
+          />
         </View>
       </View>
 
@@ -86,28 +85,18 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFF8F5' },
 
   illuContainer: { alignItems: 'center', marginTop: 24 },
-  illuBg: {
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: '#FDE8DC',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+  logoWrap: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
     overflow: 'hidden',
-  },
-  foodShape: { position: 'absolute' },
-  bowl: {
-    width: 200,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.white,
-    marginBottom: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
   },
+  logo: { width: '100%', height: '100%' },
 
   content: { paddingHorizontal: 32, marginTop: 32 },
   appName: { fontSize: 34, fontWeight: '700', color: Colors.t1, textAlign: 'center' },

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset Password – SpeedyMeal</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background-color: #FAFAFA;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      color: #1A1A1A;
+    }
+
+    .card {
+      background: #FFFFFF;
+      border-radius: 24px;
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+    }
+
+    /* Logo */
+    .logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 32px;
+      gap: 12px;
+    }
+    .logo-wrap img {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+    }
+    .logo-wrap span {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1A1A1A;
+    }
+
+    /* Headings */
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1A1A1A;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #8A8A8A;
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+
+    /* Fields */
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #8A8A8A;
+      margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%;
+      background: #F8F8F8;
+      border: 1.5px solid #EBEBEB;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 15px;
+      color: #1A1A1A;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: #E8572A; }
+
+    /* Button */
+    button {
+      width: 100%;
+      background: #E8572A;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.88; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Banners */
+    .banner {
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+    .banner.error { background: #FEE2E2; color: #DC2626; }
+    .banner.info  { background: #DCFCE7; color: #16A34A; }
+    .banner { display: none; }
+    .banner.visible { display: block; }
+
+    /* Success state */
+    .success-wrap {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+    }
+    .success-wrap.visible { display: flex; }
+    .success-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 36px;
+      background: #FDE8DC;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    .success-wrap h2 { font-size: 22px; font-weight: 700; }
+    .success-wrap p { font-size: 14px; color: #8A8A8A; line-height: 1.6; }
+
+    /* Expired state */
+    .expired-wrap {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+    }
+    .expired-wrap.visible { display: flex; }
+    .expired-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 36px;
+      background: #FEE2E2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+    .expired-wrap h2 { font-size: 22px; font-weight: 700; }
+    .expired-wrap p { font-size: 14px; color: #8A8A8A; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="card">
+
+    <div class="logo-wrap">
+      <img src="./wand-icon.png" alt="SpeedyMeal" />
+      <span>SpeedyMeal</span>
+    </div>
+
+    <!-- Expired state -->
+    <div class="expired-wrap" id="expiredState">
+      <div class="expired-icon">⚠️</div>
+      <h2>Link expired</h2>
+      <p>This reset link is no longer valid.<br/>Please request a new one from the app.</p>
+    </div>
+
+    <!-- Form state -->
+    <div id="formState">
+      <h1>New password</h1>
+      <p class="subtitle">Enter your new password below. Make it at least 6 characters.</p>
+
+      <div class="banner error" id="errorBanner"></div>
+
+      <div class="field">
+        <label>New Password</label>
+        <input type="password" id="password" placeholder="Min. 6 characters" />
+      </div>
+      <div class="field">
+        <label>Confirm Password</label>
+        <input type="password" id="confirmPassword" placeholder="Repeat new password" />
+      </div>
+
+      <button id="submitBtn" onclick="handleSubmit()">Update Password</button>
+    </div>
+
+    <!-- Success state -->
+    <div class="success-wrap" id="successState">
+      <div class="success-icon">✓</div>
+      <h2>Password updated!</h2>
+      <p>Your password has been changed successfully.<br/>Go back to the SpeedyMeal app and log in.</p>
+    </div>
+
+  </div>
+
+  <script>
+    const SUPABASE_URL  = 'https://umzguideuxcypcnimypx.supabase.co';
+    const SUPABASE_KEY  = 'sb_publishable_V3UksHf8CVpylzL3Kvi1kg_70acVyav';
+    const { createClient } = supabase;
+    const client = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Parse hash params from URL
+    const hash   = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const accessToken  = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    const type         = params.get('type');
+    const errorCode    = params.get('error_code');
+
+    let sessionReady = false;
+
+    // If there's an error in the URL or no recovery token, show expired state
+    if (errorCode || !accessToken || type !== 'recovery') {
+      document.getElementById('formState').style.display   = 'none';
+      document.getElementById('expiredState').classList.add('visible');
+    } else {
+      const btn = document.getElementById('submitBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Loading…';
+      client.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ error }) => {
+          if (error) {
+            document.getElementById('formState').style.display = 'none';
+            document.getElementById('expiredState').classList.add('visible');
+          } else {
+            sessionReady = true;
+            btn.disabled    = false;
+            btn.textContent = 'Update Password';
+          }
+        });
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('errorBanner');
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function hideError() {
+      document.getElementById('errorBanner').classList.remove('visible');
+    }
+
+    async function handleSubmit() {
+      if (!sessionReady) return;
+      hideError();
+      const password        = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (!password) { showError('Please enter a new password.'); return; }
+      if (password.length < 6) { showError('Password must be at least 6 characters.'); return; }
+      if (password !== confirmPassword) { showError('Passwords do not match.'); return; }
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled    = true;
+      btn.textContent = 'Updating…';
+
+      const { error } = await client.auth.updateUser({ password });
+
+      if (error) {
+        showError(error.message);
+        btn.disabled    = false;
+        btn.textContent = 'Update Password';
+      } else {
+        document.getElementById('formState').style.display  = 'none';
+        document.getElementById('successState').classList.add('visible');
+      }
+    }
+
+    // Allow pressing Enter to submit (only when the form is visible)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && sessionReady) handleSubmit();
+    });
+  </script>
+</body>
+</html>

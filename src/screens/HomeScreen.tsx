@@ -27,13 +27,13 @@ export default function HomeScreen({ navigation }: Props) {
     useRecipes();
   const [popularMeals, setPopularMeals] = useState(results);
 
-  // Load a default category on mount so cards are visible right away
+  // Load a diverse mix on mount
   useEffect(() => {
-    selectCategory('Chicken');
+    selectCategory('All');
   }, []);
 
   useEffect(() => {
-    setPopularMeals(results.slice(0, 6));
+    setPopularMeals(results.slice(0, 12));
   }, [results]);
 
   async function handleSurprise() {

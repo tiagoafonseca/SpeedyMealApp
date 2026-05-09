@@ -1,7 +1,8 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -23,6 +24,20 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [focused, setFocused] = useState(false);
+
+  const screenOpacity = useRef(new Animated.Value(0)).current;
+  const formTranslateY = useRef(new Animated.Value(24)).current;
+  const successOpacity = useRef(new Animated.Value(0)).current;
+  const successScale = useRef(new Animated.Value(0.88)).current;
+  const iconTranslateY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(screenOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
+      Animated.spring(formTranslateY, { toValue: 0, tension: 80, friction: 12, useNativeDriver: true }),
+    ]).start();
+  }, []);
 
   async function handleSend() {
     if (!email.trim()) { setError('Please enter your email address.'); return; }
@@ -37,6 +52,15 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
       setError(err.message);
     } else {
       setSent(true);
+      Animated.parallel([
+        Animated.timing(successOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+        Animated.spring(successScale, { toValue: 1, tension: 60, friction: 10, useNativeDriver: true }),
+      ]).start(() => {
+        Animated.sequence([
+          Animated.timing(iconTranslateY, { toValue: -14, duration: 180, useNativeDriver: true }),
+          Animated.spring(iconTranslateY, { toValue: 0, tension: 80, friction: 6, useNativeDriver: true }),
+        ]).start();
+      });
     }
   }
 
@@ -47,34 +71,36 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.container}>
+        <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
 
-          {/* Back */}
-          <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.back}>
-            <Text style={styles.backTxt}>←</Text>
-          </Pressable>
+          {!sent && (
+            <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.back}>
+              <Text style={styles.backTxt}>←</Text>
+            </Pressable>
+          )}
 
           {sent ? (
-            // ── Success state ──────────────────────────────────────────────
-            <View style={styles.successWrap}>
-              <View style={styles.successIcon}>
-                <Text style={styles.successIconTxt}>✉</Text>
-              </View>
+            <Animated.View style={[
+              styles.successWrap,
+              { opacity: successOpacity, transform: [{ scale: successScale }] },
+            ]}>
+              <Animated.View style={[styles.successIcon, { transform: [{ translateY: iconTranslateY }] }]}>
+                <Text style={styles.successIconTxt}>✉️</Text>
+              </Animated.View>
               <Text style={styles.successTitle}>Check your inbox</Text>
               <Text style={styles.successSub}>
-                We sent a password reset link to{'\n'}
+                We sent a reset link to{'\n'}
                 <Text style={styles.successEmail}>{email}</Text>
               </Text>
               <Pressable
-                style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.85 }]}
-                onPress={() => navigation.goBack()}
+                style={({ pressed }) => [styles.primaryBtn, styles.primaryBtnFull, pressed && { opacity: 0.85 }]}
+                onPress={() => navigation.navigate('Auth', { mode: 'login' })}
               >
                 <Text style={styles.primaryBtnTxt}>Back to Log In</Text>
               </Pressable>
-            </View>
+            </Animated.View>
           ) : (
-            // ── Form state ─────────────────────────────────────────────────
-            <>
+            <Animated.View style={{ transform: [{ translateY: formTranslateY }] }}>
               <View style={styles.header}>
                 <Text style={styles.title}>Forgot password?</Text>
                 <Text style={styles.subtitle}>
@@ -90,7 +116,7 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
 
               <Text style={styles.fieldLabel}>Email</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, focused && styles.inputFocused]}
                 placeholder="hello@example.com"
                 placeholderTextColor={Colors.t3}
                 value={email}
@@ -100,6 +126,8 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
                 autoCorrect={false}
                 returnKeyType="done"
                 onSubmitEditing={handleSend}
+                onFocus={() => setFocused(true)}
+                onBlur={() => setFocused(false)}
                 autoFocus
               />
 
@@ -118,10 +146,10 @@ export default function ForgotPasswordScreen({ navigation }: Props) {
                   <Text style={styles.primaryBtnTxt}>Send Reset Link</Text>
                 )}
               </Pressable>
-            </>
+            </Animated.View>
           )}
 
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -151,22 +179,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14,
     fontSize: 15, color: Colors.t1, marginBottom: 24,
   },
+  inputFocused: { borderColor: Colors.accent },
 
   primaryBtn: {
     backgroundColor: Colors.accent, borderRadius: Radius.lg,
-    paddingVertical: 16, alignItems: 'center',
+    paddingVertical: 16, paddingHorizontal: 24, alignItems: 'center',
   },
+  primaryBtnFull: { alignSelf: 'stretch' },
   primaryBtnTxt: { fontSize: 16, fontWeight: '600', color: Colors.white },
 
-  // Success state
-  successWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 },
+  successWrap: {
+    flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60,
+  },
   successIcon: {
-    width: 80, height: 80, borderRadius: 40,
+    width: 88, height: 88, borderRadius: 44,
     backgroundColor: '#FDE8DC',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 24,
   },
-  successIconTxt: { fontSize: 34 },
+  successIconTxt: { fontSize: 36 },
   successTitle: { fontSize: 24, fontWeight: '700', color: Colors.t1, marginBottom: 12 },
   successSub: {
     fontSize: 15, color: Colors.t2, textAlign: 'center',

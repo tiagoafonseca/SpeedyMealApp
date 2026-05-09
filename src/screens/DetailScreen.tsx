@@ -18,6 +18,23 @@ import { HomeStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'Detail'>;
 
+function parseSteps(instructions: string): string[] {
+  // Some recipes use double newlines as paragraph breaks — prefer those
+  let chunks = instructions.split(/\r?\n\r?\n/).map((s) => s.trim()).filter(Boolean);
+
+  // If no paragraph breaks, fall back to single newlines
+  if (chunks.length <= 1) {
+    chunks = instructions.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  }
+
+  return chunks
+    // Drop standalone step labels: "STEP 1", "Step 2", "1.", "2" alone on a line
+    .filter((s) => !/^(step\s*)?\d+\.?\s*$/i.test(s))
+    // Strip leading "1. " or "Step 1: " prefixes from steps that have real content
+    .map((s) => s.replace(/^(step\s*\d+\s*[.:]?\s*|\d+\.\s*)/i, '').trim())
+    .filter(Boolean);
+}
+
 export default function DetailScreen({ route, navigation }: Props) {
   const { id } = route.params;
   const [meal, setMeal] = useState<Meal | null>(null);
@@ -48,10 +65,7 @@ export default function DetailScreen({ route, navigation }: Props) {
 
   const saved = isFavourite(meal.idMeal);
   const ingredients = getIngredients(meal);
-  const steps = meal.strInstructions
-    .split(/\r?\n/)
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const steps = parseSteps(meal.strInstructions);
 
   return (
     <View style={styles.root}>
@@ -159,7 +173,7 @@ const styles = StyleSheet.create({
   },
   iconBtnTxt: { fontSize: 17, color: Colors.t1 },
 
-  sheet: { marginTop: 288, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  sheet: { marginTop: 288, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: Colors.white },
   sheetContent: { paddingHorizontal: 24, paddingTop: 28, paddingBottom: 48 },
 
   title: { fontSize: 26, fontWeight: '700', color: Colors.t1, marginBottom: 14 },

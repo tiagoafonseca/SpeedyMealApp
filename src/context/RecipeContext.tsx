@@ -59,12 +59,26 @@ export function RecipeProvider({ children }: { children: React.ReactNode }) {
   const selectCategory = useCallback(async (cat: string) => {
     setActiveCategory(cat);
     if (cat === 'All') {
-      setResults([]);
+      await withLoading(async () => {
+        const diverseCategories = ['Beef', 'Chicken', 'Seafood', 'Vegetarian', 'Pasta', 'Dessert'];
+        const buckets = await Promise.all(
+          diverseCategories.map((c) => getMealsByCategory(c)),
+        );
+        // Interleave: take 2 from each category round-robin for a varied grid
+        const interleaved: MealSummary[] = [];
+        for (let i = 0; i < 2; i++) {
+          for (let j = 0; j < buckets.length; j++) {
+            const item = buckets[j][i];
+            if (item) interleaved.push({ ...item, strCategory: diverseCategories[j] });
+          }
+        }
+        setResults(interleaved);
+      });
       return;
     }
     await withLoading(async () => {
       const meals = await getMealsByCategory(cat);
-      setResults(meals);
+      setResults(meals.map((m) => ({ ...m, strCategory: cat })));
     });
   }, [withLoading]);
 

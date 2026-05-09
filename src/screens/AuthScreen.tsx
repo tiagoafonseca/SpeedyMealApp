@@ -2,6 +2,8 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -28,15 +30,36 @@ export default function AuthScreen({ route, navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [tabBarWidth, setTabBarWidth] = useState(0);
 
   const passwordRef = useRef<TextInput>(null);
   const confirmRef = useRef<TextInput>(null);
+  const tabAnim = useRef(new Animated.Value(mode === 'login' ? 0 : 1)).current;
+  const confirmOpacity = useRef(new Animated.Value(mode === 'signup' ? 1 : 0)).current;
+  const confirmHeight = useRef(new Animated.Value(mode === 'signup' ? 1 : 0)).current;
 
   const { signIn, signUp } = useAuth();
 
   useEffect(() => {
     setError(null);
     setInfo(null);
+    Animated.parallel([
+      Animated.spring(tabAnim, {
+        toValue: mode === 'login' ? 0 : 1,
+        tension: 80, friction: 12,
+        useNativeDriver: true,
+      }),
+      Animated.timing(confirmOpacity, {
+        toValue: mode === 'signup' ? 1 : 0,
+        duration: 200,
+        useNativeDriver: false,
+      }),
+      Animated.timing(confirmHeight, {
+        toValue: mode === 'signup' ? 1 : 0,
+        duration: 200,
+        useNativeDriver: false,
+      }),
+    ]).start();
   }, [mode]);
 
   function validate(): string | null {
@@ -91,18 +114,38 @@ export default function AuthScreen({ route, navigation }: Props) {
 
           {/* Logo */}
           <View style={styles.logoWrap}>
-            <View style={styles.logo}>
-              <Text style={styles.logoTxt}>S</Text>
-            </View>
+            <Image
+              source={require('../../assets/speedymeal-icon.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={styles.appName}>SpeedyMeal</Text>
           </View>
 
           {/* Tab switcher */}
-          <View style={styles.tabBar}>
+          <View
+            style={styles.tabBar}
+            onLayout={(e) => setTabBarWidth(e.nativeEvent.layout.width)}
+          >
+            {/* Sliding pill */}
+            <Animated.View
+              style={[
+                styles.tabPill,
+                {
+                  width: tabBarWidth > 0 ? tabBarWidth / 2 - 4 : '50%',
+                  transform: [{
+                    translateX: tabAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, tabBarWidth > 0 ? tabBarWidth / 2 : 0],
+                    }),
+                  }],
+                },
+              ]}
+            />
             {(['login', 'signup'] as Mode[]).map((m) => (
               <Pressable
                 key={m}
-                style={[styles.tab, mode === m && styles.tabActive]}
+                style={styles.tab}
                 onPress={() => setMode(m)}
               >
                 <Text style={[styles.tabTxt, mode === m && styles.tabTxtActive]}>
@@ -147,7 +190,11 @@ export default function AuthScreen({ route, navigation }: Props) {
                 mode === 'signup' ? confirmRef.current?.focus() : handleSubmit()
               }
             />
-            {mode === 'signup' && (
+            <Animated.View style={{
+              opacity: confirmOpacity,
+              maxHeight: confirmHeight.interpolate({ inputRange: [0, 1], outputRange: [0, 90] }),
+              overflow: 'hidden',
+            }}>
               <Field
                 ref={confirmRef}
                 label="Confirm Password"
@@ -158,7 +205,7 @@ export default function AuthScreen({ route, navigation }: Props) {
                 returnKeyType="done"
                 onSubmitEditing={handleSubmit}
               />
-            )}
+            </Animated.View>
           </View>
 
           {/* Forgot password (login only) */}
@@ -255,12 +302,9 @@ const styles = StyleSheet.create({
 
   logoWrap: { alignItems: 'center', marginTop: 16, marginBottom: 28 },
   logo: {
-    width: 52, height: 52, borderRadius: 15,
-    backgroundColor: Colors.accent,
-    alignItems: 'center', justifyContent: 'center',
+    width: 72, height: 72,
     marginBottom: 10,
   },
-  logoTxt: { fontSize: 26, fontWeight: '700', color: Colors.white },
   appName: { fontSize: 20, fontWeight: '700', color: Colors.t1 },
 
   tabBar: {
@@ -269,19 +313,25 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     padding: 4,
     marginBottom: 24,
+    position: 'relative',
   },
-  tab: {
-    flex: 1, paddingVertical: 10,
+  tabPill: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    bottom: 4,
     borderRadius: Radius.sm,
-    alignItems: 'center',
-  },
-  tabActive: {
     backgroundColor: Colors.white,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 2,
+  },
+  tab: {
+    flex: 1, paddingVertical: 10,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
   },
   tabTxt: { fontSize: 14, fontWeight: '500', color: Colors.t3 },
   tabTxtActive: { fontWeight: '600', color: Colors.t1 },
