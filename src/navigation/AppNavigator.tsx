@@ -1,11 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useFocusEffect, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import React from 'react';
-import { ActivityIndicator, Platform, View } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Animated,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Colors } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
+import { useRecipes } from '../context/RecipeContext';
 import AuthScreen from '../screens/AuthScreen';
 import DetailScreen from '../screens/DetailScreen';
 import FavouritesScreen from '../screens/FavouritesScreen';
@@ -79,6 +88,28 @@ function ProfileNavigator() {
   );
 }
 
+// ── Fade wrapper for tab transitions ──────────────────────────────────────────
+function FadeScreen({ children }: { children: React.ReactNode }) {
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      opacity.setValue(0);
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }).start();
+    }, [opacity]),
+  );
+
+  return (
+    <Animated.View style={{ flex: 1, opacity }}>
+      {children}
+    </Animated.View>
+  );
+}
+
 // ── Bottom Tabs ────────────────────────────────────────────────────────────────
 const Tab = createBottomTabNavigator<TabParamList>();
 function TabNavigator() {
@@ -113,28 +144,93 @@ function TabNavigator() {
         },
       })}
     >
-      <Tab.Screen
-        name="FavouritesTab"
-        component={FavouritesNavigator}
-        options={{ tabBarLabel: 'Favourites' }}
-      />
-      <Tab.Screen
-        name="HomeTab"
-        component={HomeNavigator}
-        options={{ tabBarLabel: 'Discover' }}
-      />
-      <Tab.Screen
-        name="ProfileTab"
-        component={ProfileNavigator}
-        options={{ tabBarLabel: 'Profile' }}
-      />
+      <Tab.Screen name="FavouritesTab" options={{ tabBarLabel: 'Favourites' }}>
+        {() => <FadeScreen><FavouritesNavigator /></FadeScreen>}
+      </Tab.Screen>
+      <Tab.Screen name="HomeTab" options={{ tabBarLabel: 'Discover' }}>
+        {() => <FadeScreen><HomeNavigator /></FadeScreen>}
+      </Tab.Screen>
+      <Tab.Screen name="ProfileTab" options={{ tabBarLabel: 'Profile' }}>
+        {() => <FadeScreen><ProfileNavigator /></FadeScreen>}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
 
+// ── Surprise FAB ───────────────────────────────────────────────────────────────
+function SurpriseFAB({ navigationRef }: { navigationRef: any }) {
+  const { surprise } = useRecipes();
+  const [loading, setLoading] = useState(false);
+  const scale = useRef(new Animated.Value(1)).current;
+  const spin = useRef(new Animated.Value(0)).current;
+
+  async function handlePress() {
+    if (loading) return;
+
+    Animated.parallel([
+      Animated.sequence([
+        Animated.spring(scale, { toValue: 0.85, speed: 50, useNativeDriver: true }),
+        Animated.spring(scale, { toValue: 1, speed: 20, useNativeDriver: true }),
+      ]),
+      Animated.timing(spin, { toValue: 1, duration: 420, useNativeDriver: true }),
+    ]).start(() => spin.setValue(0));
+
+    setLoading(true);
+    const meal = await surprise();
+    setLoading(false);
+
+    if (meal) {
+      navigationRef.navigate('HomeTab', {
+        screen: 'Detail',
+        params: { id: meal.idMeal, title: meal.strMeal },
+      });
+    }
+  }
+
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+
+  return (
+    <Animated.View style={[fabStyles.fab, { transform: [{ scale }, { rotate }] }]}>
+      <Pressable onPress={handlePress} style={fabStyles.inner} disabled={loading}>
+        {loading
+          ? <ActivityIndicator color={Colors.white} size="small" />
+          : <Text style={fabStyles.icon}>🎲</Text>
+        }
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+const fabStyles = StyleSheet.create({
+  fab: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 100 : 76,
+    right: 20,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: Colors.accent,
+    shadowColor: Colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  inner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  icon: { fontSize: 22 },
+});
+
 // ── Root ───────────────────────────────────────────────────────────────────────
 export default function RootNavigator() {
   const { session, isLoading } = useAuth();
+  const navigationRef = useNavigationContainerRef();
+  const [currentRoute, setCurrentRoute] = useState<string | undefined>();
 
   if (isLoading) {
     return (
@@ -144,9 +240,17 @@ export default function RootNavigator() {
     );
   }
 
+  const showFAB = session && currentRoute !== 'Detail' && currentRoute !== 'Profile';
+
   return (
-    <NavigationContainer>
-      {session ? <TabNavigator /> : <AuthNavigator />}
-    </NavigationContainer>
+    <View style={{ flex: 1 }}>
+      <NavigationContainer
+        ref={navigationRef}
+        onStateChange={() => setCurrentRoute(navigationRef.getCurrentRoute()?.name)}
+      >
+        {session ? <TabNavigator /> : <AuthNavigator />}
+      </NavigationContainer>
+      {showFAB && <SurpriseFAB navigationRef={navigationRef} />}
+    </View>
   );
 }

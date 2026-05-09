@@ -23,7 +23,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 const STATIC_CATEGORIES = ['All', 'Beef', 'Chicken', 'Seafood', 'Vegetarian', 'Pasta', 'Dessert'];
 
 export default function HomeScreen({ navigation }: Props) {
-  const { query, setQuery, results, selectCategory, activeCategory, isLoading, surprise } =
+  const { query, setQuery, results, selectCategory, activeCategory, isLoading } =
     useRecipes();
   const [popularMeals, setPopularMeals] = useState(results);
 
@@ -35,11 +35,6 @@ export default function HomeScreen({ navigation }: Props) {
   useEffect(() => {
     setPopularMeals(activeCategory === 'All' ? results.slice(0, 12) : results);
   }, [results, activeCategory]);
-
-  async function handleSurprise() {
-    const meal = await surprise();
-    if (meal) navigation.navigate('Detail', { id: meal.idMeal, title: meal.strMeal });
-  }
 
   function handleSearch() {
     if (!query.trim()) return;
@@ -118,13 +113,6 @@ export default function HomeScreen({ navigation }: Props) {
           />
         )}
 
-        {/* Surprise Me */}
-        <Pressable
-          style={({ pressed }) => [styles.surpriseBtn, pressed && { opacity: 0.85 }]}
-          onPress={handleSurprise}
-        >
-          <Text style={styles.surpriseTxt}>✦  Surprise Me</Text>
-        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -141,12 +129,4 @@ const styles = StyleSheet.create({
   sectionHeader: { marginBottom: 14 },
   sectionTitle: { fontSize: 16, fontWeight: '600', color: Colors.t1 },
   row: { justifyContent: 'space-between' },
-  surpriseBtn: {
-    backgroundColor: Colors.accent,
-    borderRadius: Radius.lg,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  surpriseTxt: { fontSize: 16, fontWeight: '600', color: Colors.white },
 });
