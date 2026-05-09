@@ -1,0 +1,150 @@
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import CategoryChip from '../components/CategoryChip';
+import RecipeCard from '../components/RecipeCard';
+import SearchBar from '../components/SearchBar';
+import { Colors, Radius } from '../constants/theme';
+import { useRecipes } from '../context/RecipeContext';
+import { RootStackParamList } from '../navigation/types';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
+
+const STATIC_CATEGORIES = ['All', 'Beef', 'Chicken', 'Seafood', 'Vegetarian', 'Pasta', 'Dessert'];
+
+export default function HomeScreen({ navigation }: Props) {
+  const { query, setQuery, results, selectCategory, activeCategory, isLoading, surprise } =
+    useRecipes();
+  const [popularMeals, setPopularMeals] = useState(results);
+
+  // Load a default category on mount so cards are visible right away
+  useEffect(() => {
+    selectCategory('Chicken');
+  }, []);
+
+  useEffect(() => {
+    setPopularMeals(results.slice(0, 6));
+  }, [results]);
+
+  async function handleSurprise() {
+    const meal = await surprise();
+    if (meal) navigation.navigate('Detail', { id: meal.idMeal, title: meal.strMeal });
+  }
+
+  function handleSearch() {
+    if (!query.trim()) return;
+    navigation.navigate('Results', { query: query.trim() });
+  }
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar barStyle="dark-content" />
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Greeting */}
+        <View style={styles.header}>
+          <Text style={styles.greetLine1}>What are you</Text>
+          <Text style={styles.greetLine2}>craving today?</Text>
+        </View>
+
+        {/* Search */}
+        <View style={styles.section}>
+          <SearchBar
+            value={query}
+            onChangeText={setQuery}
+            onSubmit={handleSearch}
+            onFocus={() => {
+              if (query.trim()) navigation.navigate('Results', { query: query.trim() });
+            }}
+          />
+        </View>
+
+        {/* Categories */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chips}
+        >
+          {STATIC_CATEGORIES.map((cat) => (
+            <CategoryChip
+              key={cat}
+              label={cat}
+              active={activeCategory === cat}
+              onPress={() => selectCategory(cat)}
+            />
+          ))}
+        </ScrollView>
+
+        {/* Popular */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Popular this week</Text>
+        </View>
+
+        {isLoading ? (
+          <ActivityIndicator color={Colors.accent} style={{ marginTop: 32 }} />
+        ) : (
+          <FlatList
+            data={popularMeals}
+            keyExtractor={(item) => item.idMeal}
+            numColumns={2}
+            columnWrapperStyle={styles.row}
+            scrollEnabled={false}
+            renderItem={({ item }) => (
+              <RecipeCard
+                id={item.idMeal}
+                title={item.strMeal}
+                thumb={item.strMealThumb}
+                category={item.strCategory}
+                onPress={() =>
+                  navigation.navigate('Detail', { id: item.idMeal, title: item.strMeal })
+                }
+              />
+            )}
+          />
+        )}
+
+        {/* Surprise Me */}
+        <Pressable
+          style={({ pressed }) => [styles.surpriseBtn, pressed && { opacity: 0.85 }]}
+          onPress={handleSurprise}
+        >
+          <Text style={styles.surpriseTxt}>✦  Surprise Me</Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: Colors.bg },
+  scroll: { paddingHorizontal: 24, paddingBottom: 40 },
+  header: { marginTop: 16, marginBottom: 20 },
+  greetLine1: { fontSize: 30, fontWeight: '700', color: Colors.t1 },
+  greetLine2: { fontSize: 30, fontWeight: '700', color: Colors.accent },
+  section: { marginBottom: 16 },
+  chips: { paddingBottom: 16 },
+  sectionHeader: { marginBottom: 14 },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: Colors.t1 },
+  row: { justifyContent: 'space-between' },
+  surpriseBtn: {
+    backgroundColor: Colors.accent,
+    borderRadius: Radius.lg,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  surpriseTxt: { fontSize: 16, fontWeight: '600', color: Colors.white },
+});

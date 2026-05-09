@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mealmind",
-    "slug": "mealmind",
+    "name": "SpeedyMeal",
+    "slug": "speedymeal",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,8 +12,10 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    "scheme": "speedymeal",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.speedymeal.app"
     },
     "android": {
       "adaptiveIcon": {
