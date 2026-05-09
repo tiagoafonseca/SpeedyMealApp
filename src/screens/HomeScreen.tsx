@@ -33,8 +33,8 @@ export default function HomeScreen({ navigation }: Props) {
   }, []);
 
   useEffect(() => {
-    setPopularMeals(results.slice(0, 12));
-  }, [results]);
+    setPopularMeals(activeCategory === 'All' ? results.slice(0, 12) : results);
+  }, [results, activeCategory]);
 
   async function handleSurprise() {
     const meal = await surprise();
@@ -90,7 +90,9 @@ export default function HomeScreen({ navigation }: Props) {
 
         {/* Popular */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Popular this week</Text>
+          <Text style={styles.sectionTitle}>
+            {activeCategory === 'All' ? 'Popular this week' : activeCategory}
+          </Text>
         </View>
 
         {isLoading ? (
