@@ -1,4 +1,4 @@
-# SpeedyMeal
+# SpeedyMeal - Mobile App
 
 A minimalist iOS recipe app that helps you decide what to eat — fast. Search by ingredient or dish, browse by category, save your favourites, and let the app surprise you when you can't choose.
 
